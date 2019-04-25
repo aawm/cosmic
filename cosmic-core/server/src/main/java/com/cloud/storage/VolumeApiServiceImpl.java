@@ -993,13 +993,12 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
 
     private List<StoragePoolVO> checkIfStoragePoolHasSufficientResources(final List<StoragePoolVO> storagePoolVOList, final VolumeInfo volumeInfo) {
         return storagePoolVOList.stream().filter(storagePoolVO -> {
-            final StoragePoolJoinVO storagePoolJoinVO = _storagePoolJoinDao.findById(storagePoolVO.getId());
 
             // Get size for all the non-destroyed volumes
             final Pair<Long, Long> sizes = this._volumeDao.getNonDestroyedCountAndTotalByPool(storagePoolVO.getId());
 
             // Capacity left
-            final long capacityLeft = storagePoolJoinVO.getCapacityBytes() - sizes.first();
+            final long capacityLeft = storagePoolVO.getCapacityBytes() - sizes.first();
 
             return capacityLeft >= volumeInfo.getSize();
         }).collect(Collectors.toList());
