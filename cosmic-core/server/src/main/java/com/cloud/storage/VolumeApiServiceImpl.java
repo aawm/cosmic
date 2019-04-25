@@ -14,6 +14,8 @@ import com.cloud.api.command.user.volume.GetUploadParamsForVolumeCmd;
 import com.cloud.api.command.user.volume.MigrateVolumeCmd;
 import com.cloud.api.command.user.volume.ResizeVolumeCmd;
 import com.cloud.api.command.user.volume.UploadVolumeCmd;
+import com.cloud.api.query.dao.StoragePoolJoinDao;
+import com.cloud.api.query.vo.StoragePoolJoinVO;
 import com.cloud.api.response.GetUploadParamsResponse;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
@@ -219,6 +221,8 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
     VMInstanceDao _vmInstanceDao;
     @Inject
     PrimaryDataStoreDao _storagePoolDao;
+    @Inject
+    StoragePoolJoinDao _storagePoolJoinDao;
     @Inject
     DiskOfferingDao _diskOfferingDao;
     @Inject
@@ -986,7 +990,12 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
     }
 
     private List<StoragePoolVO> checkIfStoragePoolHasSufficientResources(final List<StoragePoolVO> storagePoolVOList, final VolumeInfo volumeInfo) {
-        return storagePoolVOList.stream().filter(storagePoolVO -> (storagePoolVO.getCapacityBytes() - storagePoolVO.getUsedBytes()) > volumeInfo.getSize()).collect(Collectors.toList());
+        return storagePoolVOList.stream().filter(storagePoolVO -> {
+            final StoragePoolJoinVO storagePoolJoinVO = _storagePoolJoinDao.findById(storagePoolVO.getId());
+
+            final long capacityLeft = storagePoolJoinVO.getCapacityBytes() - storagePoolJoinVO.getUsedCapacity();
+            return capacityLeft >= volumeInfo.getSize();
+        }).collect(Collectors.toList());
     }
 
     private boolean canVolumeBeAttachedToVirtualMachine(final VolumeInfo volumeInfo, final UserVmVO userVmVO) {
