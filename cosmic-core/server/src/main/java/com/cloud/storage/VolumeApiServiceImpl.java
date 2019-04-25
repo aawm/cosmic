@@ -255,6 +255,8 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
     VmWorkJobDao _workJobDao;
     @Inject
     ClusterDetailsDao _clusterDetailsDao;
+    @Inject
+    VolumeDao _volumeDao;
     VmWorkJobHandlerProxy _jobHandlerProxy = new VmWorkJobHandlerProxy(this);
     private List<StoragePoolAllocator> _storagePoolAllocators;
     private long _maxVolumeSizeInGb;
@@ -993,7 +995,12 @@ public class VolumeApiServiceImpl extends ManagerBase implements VolumeApiServic
         return storagePoolVOList.stream().filter(storagePoolVO -> {
             final StoragePoolJoinVO storagePoolJoinVO = _storagePoolJoinDao.findById(storagePoolVO.getId());
 
-            final long capacityLeft = storagePoolJoinVO.getCapacityBytes() - storagePoolJoinVO.getUsedCapacity();
+            // Get size for all the non-destroyed volumes
+            final Pair<Long, Long> sizes = this._volumeDao.getNonDestroyedCountAndTotalByPool(storagePoolVO.getId());
+
+            // Capacity left
+            final long capacityLeft = storagePoolJoinVO.getCapacityBytes() - sizes.first();
+
             return capacityLeft >= volumeInfo.getSize();
         }).collect(Collectors.toList());
     }
